@@ -1,0 +1,636 @@
+{
+  "appVersion": "0.1.0",
+  "format": "terrain_editor_project",
+  "formatVersion": 1,
+  "links": [
+    {
+      "endPin": 5,
+      "id": 10,
+      "startPin": 2
+    }
+  ],
+  "nodePositions": {
+    "1": [
+      60.0,
+      200.0
+    ],
+    "4": [
+      420.0,
+      200.0
+    ]
+  },
+  "nodes": [
+    {
+      "colorize": {
+        "backend": 1,
+        "stops": [
+          {
+            "b": 0.0,
+            "g": 0.0,
+            "position": 0.0,
+            "r": 0.0
+          },
+          {
+            "b": 1.0,
+            "g": 1.0,
+            "position": 1.0,
+            "r": 1.0
+          }
+        ]
+      },
+      "crumbling": {
+        "debrisAmount": 0.6499999761581421,
+        "debrisSizeMaxM": 8.0,
+        "debrisSizeMinM": 2.0,
+        "gravity": 0.75,
+        "physicsCount": 48,
+        "seed": 0,
+        "spread": 0.3499999940395355,
+        "style": 2
+      },
+      "dropletErosion": {
+        "backend": 1,
+        "depositionStrength": 0.30000001192092896,
+        "dropletDensity": 0.25,
+        "erosionRadiusMeters": 6.0,
+        "erosionStrength": 0.30000001192092896,
+        "evaporationPerMeter": 0.0020000000949949026,
+        "gravity": 4.0,
+        "inertia": 0.05000000074505806,
+        "maxTravelDistance": 512.0,
+        "minSlope": 0.009999999776482582,
+        "sedimentCapacity": 4.0,
+        "seed": 1337,
+        "useMultigrid": true
+      },
+      "fluvialErosion": {
+        "backend": 1,
+        "channelLength": 512.0,
+        "channeling": 0.25,
+        "depositAngleDeg": 2.0,
+        "erosionGranularity": 10.0,
+        "erosionStrength": 0.5,
+        "featureSize": 16.0,
+        "flowVolume": 0.3499999940395355,
+        "friction": 0.10000000149011612,
+        "geologicalAge": 20.0,
+        "maxErosionAngleDeg": 45.0,
+        "sedimentVelocity": 1.0,
+        "simulationIterations": 25,
+        "smallChannelInfluence": 0.0,
+        "useMultigrid": true,
+        "wearAngleDeg": 3.0
+      },
+      "heightmap": {
+        "path": "",
+        "relativeVerticalScalePercent": 100.0,
+        "scaleMeters": 1024.0,
+        "verticalOffsetMeters": 0.0
+      },
+      "heightmapBlur": {
+        "iterations": 1,
+        "radius": 3.0,
+        "strength": 1.0
+      },
+      "heightmapFromMask": {
+        "backend": 1,
+        "baseHeightMeters": 0.0,
+        "gamma": 1.0,
+        "heightMeters": 100.0,
+        "invert": false
+      },
+      "id": 1,
+      "inputs": [],
+      "kind": 29,
+      "maskBlend": {
+        "intensity": 1.0,
+        "mode": 0
+      },
+      "maskBlur": {
+        "backend": 1,
+        "iterations": 1,
+        "radiusMeters": 8.0,
+        "strength": 1.0
+      },
+      "maskCurvature": {
+        "gamma": 1.0,
+        "largestDetailLevelM": 8.0,
+        "mode": 2,
+        "radius": 3,
+        "sensitivityMeters": 1.0,
+        "threshold": 0.0
+      },
+      "maskFluvial": {
+        "accumulationThreshold": 0.0,
+        "algorithm": 1,
+        "backend": 1,
+        "gamma": 0.5,
+        "largestDetailLevelM": 8.0,
+        "mfdExponent": 4.0,
+        "outputCurve": 0,
+        "particleCount": 32768,
+        "particleInertia": 0.550000011920929,
+        "particleLifetime": 96,
+        "particleSeed": 1337,
+        "particleStepLengthM": 4.0,
+        "power": 1.600000023841858,
+        "simulationMode": 0,
+        "softness": 0.15000000596046448
+      },
+      "maskHeight": {
+        "featherMeters": 0.0,
+        "gamma": 1.0,
+        "heightMaxMeters": 1000.0,
+        "heightMinMeters": 0.0,
+        "invert": false,
+        "useFullRange": false
+      },
+      "maskLevels": {
+        "blackPoint": 0.0,
+        "gamma": 1.0,
+        "invert": false,
+        "whitePoint": 1.0
+      },
+      "maskNoise": {
+        "backend": 1,
+        "frequency": 4.0,
+        "lacunarity": 2.0,
+        "octaves": 4,
+        "persistence": 0.5,
+        "seed": 0
+      },
+      "maskPath": {
+        "backend": 1,
+        "gamma": 1.0,
+        "invert": false
+      },
+      "maskSlope": {
+        "gamma": 1.0,
+        "invert": false,
+        "largestDetailLevelM": 0.0,
+        "slopeMaxDeg": 60.0,
+        "slopeMinDeg": 25.0
+      },
+      "multiScaleErosion": {
+        "backend": 0,
+        "depositionStrength": 0.20000000298023224,
+        "enableDeposition": true,
+        "enableStreamPower": true,
+        "enableThermal": true,
+        "flowExponent": 1.2999999523162842,
+        "iterations": 50,
+        "maxStreamPower": 10000.0,
+        "rain": 2.5999999046325684,
+        "slopeExponent": 2.0,
+        "speStrength": 0.004000000189989805,
+        "speTimeStep": 1.0,
+        "streamExponent": 0.8999999761581421,
+        "thermalAngleDegrees": 30.0,
+        "thermalNoiseMax": 1.399999976158142,
+        "thermalNoiseMin": 0.8999999761581421,
+        "thermalNoiseWavelength": 0.002300000051036477,
+        "thermalNoisifyAngle": true,
+        "thermalStrength": 0.004999999888241291,
+        "useMultigrid": true
+      },
+      "outputs": [
+        {
+          "id": 2,
+          "label": "Heightmap",
+          "valueType": 2
+        },
+        {
+          "id": 3,
+          "label": "Displacement",
+          "valueType": 3
+        }
+      ],
+      "path": {
+        "defaultFeatherMeters": 32.0,
+        "defaultHeightMode": 0,
+        "defaultHeightOffset": 0.0,
+        "defaultSegmentType": 0,
+        "defaultWidthMeters": 64.0,
+        "edges": [],
+        "points": []
+      },
+      "ribbon": {
+        "baseElevationMeters": 15.0,
+        "crossfallPercent": 4.0,
+        "longitudinalGradePercent": 3.0,
+        "noiseAmplitudeMeters": 0.5,
+        "noiseOctaves": 4,
+        "noiseOnRoad": false,
+        "noiseSeed": 0,
+        "noiseWavelengthMeters": 6.0,
+        "roadHalfWidthMeters": 3.5,
+        "shoulderCrossfallPercent": 8.0,
+        "shoulderWidthMeters": 2.0,
+        "slopeGradePercent": 60.0,
+        "slopeWidthMeters": 8.0,
+        "texelSizeCentimeters": 8.0
+      },
+      "rock": {
+        "aspectVariation": 0.30000001192092896,
+        "backend": 1,
+        "bumpiness": 0.6000000238418579,
+        "coverage": 1.0,
+        "density": 8.0,
+        "edgeSharpness": 1.0,
+        "facetScale": 2.5,
+        "facetSharpness": 0.5,
+        "groundDetailLevelM": 0.0,
+        "heightJitter": 0.5,
+        "layerCount": 1,
+        "orientationRule": 0,
+        "rockHeight": 1.5,
+        "rockSizeMaxM": 10.0,
+        "rockSizeMinM": 5.0,
+        "rotationVariation": 1.0,
+        "seed": 0,
+        "style": 1
+      },
+      "scatter": {
+        "aspectVariation": 0.30000001192092896,
+        "backend": 1,
+        "coverage": 1.0,
+        "density": 8.0,
+        "groundDetailLevelM": 0.0,
+        "height": 0.0,
+        "heightJitter": 0.5,
+        "orientationRule": 0,
+        "rotationVariation": 1.0,
+        "seed": 0,
+        "shapeType": 0,
+        "sizeMaxM": 10.0,
+        "sizeMinM": 5.0
+      },
+      "sediment": {
+        "backend": 1,
+        "convertTerrainToSediment": true,
+        "emissionAmountM": 0.5,
+        "emissionTime": 0.0,
+        "iterations": 40,
+        "largestDetailLevelM": 8.0,
+        "maskContrast": 0.0,
+        "sedimentViscosity": 0.20000000298023224,
+        "stabilizationIterations": 2
+      },
+      "shape": {
+        "kind": 0,
+        "relativeHeightPercent": 50.0,
+        "scaleMeters": 1024.0
+      },
+      "snow": {
+        "backend": 1,
+        "emissionAmount": 1.0,
+        "emissionTime": 0.0,
+        "fillRadius": 3,
+        "iterationCount": 40,
+        "largestDetailLevelM": 8.0,
+        "maskFeatherM": 0.014999999664723873,
+        "maskMaxSnow": 1.0,
+        "maskThresholdM": 0.019999999552965164,
+        "motionSlopeLimitDeg": 35.0,
+        "slopeLimitMaxDeg": 60.0,
+        "slopeLimitMinDeg": 50.0,
+        "smoothingIterations": 4,
+        "surfaceSmoothing": 0.25,
+        "transportRate": 0.44999998807907104
+      },
+      "soil": {
+        "backend": 1,
+        "emissionAmount": 1.0,
+        "emissionTime": 0.0,
+        "iterationCount": 40,
+        "largestDetailLevelM": 8.0,
+        "maskFeatherM": 0.05000000074505806,
+        "maskMode": 0,
+        "maskThresholdM": 0.05000000074505806,
+        "motionSlopeLimitDeg": 32.0,
+        "settlingPasses": 4,
+        "slopeDependentEmission": 0.5,
+        "surfaceSmoothing": 0.10000000149011612,
+        "transportRate": 0.44999998807907104
+      },
+      "title": "Ribbon"
+    },
+    {
+      "colorize": {
+        "backend": 1,
+        "stops": [
+          {
+            "b": 0.0,
+            "g": 0.0,
+            "position": 0.0,
+            "r": 0.0
+          },
+          {
+            "b": 1.0,
+            "g": 1.0,
+            "position": 1.0,
+            "r": 1.0
+          }
+        ]
+      },
+      "crumbling": {
+        "debrisAmount": 0.6499999761581421,
+        "debrisSizeMaxM": 8.0,
+        "debrisSizeMinM": 2.0,
+        "gravity": 0.75,
+        "physicsCount": 48,
+        "seed": 0,
+        "spread": 0.3499999940395355,
+        "style": 2
+      },
+      "dropletErosion": {
+        "backend": 1,
+        "depositionStrength": 0.30000001192092896,
+        "dropletDensity": 0.25,
+        "erosionRadiusMeters": 6.0,
+        "erosionStrength": 0.30000001192092896,
+        "evaporationPerMeter": 0.0020000000949949026,
+        "gravity": 4.0,
+        "inertia": 0.05000000074505806,
+        "maxTravelDistance": 512.0,
+        "minSlope": 0.009999999776482582,
+        "sedimentCapacity": 4.0,
+        "seed": 1337,
+        "useMultigrid": true
+      },
+      "fluvialErosion": {
+        "backend": 1,
+        "channelLength": 512.0,
+        "channeling": 0.25,
+        "depositAngleDeg": 2.0,
+        "erosionGranularity": 10.0,
+        "erosionStrength": 0.5,
+        "featureSize": 16.0,
+        "flowVolume": 0.3499999940395355,
+        "friction": 0.10000000149011612,
+        "geologicalAge": 20.0,
+        "maxErosionAngleDeg": 45.0,
+        "sedimentVelocity": 1.0,
+        "simulationIterations": 25,
+        "smallChannelInfluence": 0.0,
+        "useMultigrid": true,
+        "wearAngleDeg": 3.0
+      },
+      "heightmap": {
+        "path": "",
+        "relativeVerticalScalePercent": 100.0,
+        "scaleMeters": 1024.0,
+        "verticalOffsetMeters": 0.0
+      },
+      "heightmapBlur": {
+        "iterations": 1,
+        "radius": 3.0,
+        "strength": 1.0
+      },
+      "heightmapFromMask": {
+        "backend": 1,
+        "baseHeightMeters": 0.0,
+        "gamma": 1.0,
+        "heightMeters": 100.0,
+        "invert": false
+      },
+      "id": 4,
+      "inputs": [
+        {
+          "id": 5,
+          "label": "Heightmap",
+          "valueType": 2
+        }
+      ],
+      "kind": 8,
+      "maskBlend": {
+        "intensity": 1.0,
+        "mode": 0
+      },
+      "maskBlur": {
+        "backend": 1,
+        "iterations": 1,
+        "radiusMeters": 8.0,
+        "strength": 1.0
+      },
+      "maskCurvature": {
+        "gamma": 1.0,
+        "largestDetailLevelM": 8.0,
+        "mode": 2,
+        "radius": 3,
+        "sensitivityMeters": 1.0,
+        "threshold": 0.0
+      },
+      "maskFluvial": {
+        "accumulationThreshold": 0.0,
+        "algorithm": 1,
+        "backend": 1,
+        "gamma": 0.5,
+        "largestDetailLevelM": 8.0,
+        "mfdExponent": 4.0,
+        "outputCurve": 0,
+        "particleCount": 32768,
+        "particleInertia": 0.550000011920929,
+        "particleLifetime": 96,
+        "particleSeed": 1337,
+        "particleStepLengthM": 4.0,
+        "power": 1.600000023841858,
+        "simulationMode": 0,
+        "softness": 0.15000000596046448
+      },
+      "maskHeight": {
+        "featherMeters": 0.0,
+        "gamma": 1.0,
+        "heightMaxMeters": 1000.0,
+        "heightMinMeters": 0.0,
+        "invert": false,
+        "useFullRange": false
+      },
+      "maskLevels": {
+        "blackPoint": 0.0,
+        "gamma": 1.0,
+        "invert": false,
+        "whitePoint": 1.0
+      },
+      "maskNoise": {
+        "backend": 1,
+        "frequency": 4.0,
+        "lacunarity": 2.0,
+        "octaves": 4,
+        "persistence": 0.5,
+        "seed": 0
+      },
+      "maskPath": {
+        "backend": 1,
+        "gamma": 1.0,
+        "invert": false
+      },
+      "maskSlope": {
+        "gamma": 1.0,
+        "invert": false,
+        "largestDetailLevelM": 0.0,
+        "slopeMaxDeg": 60.0,
+        "slopeMinDeg": 25.0
+      },
+      "multiScaleErosion": {
+        "backend": 0,
+        "depositionStrength": 0.20000000298023224,
+        "enableDeposition": true,
+        "enableStreamPower": true,
+        "enableThermal": true,
+        "flowExponent": 1.2999999523162842,
+        "iterations": 60,
+        "maxStreamPower": 10000.0,
+        "rain": 2.5999999046325684,
+        "slopeExponent": 2.0,
+        "speStrength": 0.004000000189989805,
+        "speTimeStep": 1.0,
+        "streamExponent": 0.8999999761581421,
+        "thermalAngleDegrees": 30.0,
+        "thermalNoiseMax": 1.399999976158142,
+        "thermalNoiseMin": 0.8999999761581421,
+        "thermalNoiseWavelength": 0.002300000051036477,
+        "thermalNoisifyAngle": true,
+        "thermalStrength": 0.004999999888241291,
+        "useMultigrid": true
+      },
+      "outputs": [
+        {
+          "id": 6,
+          "label": "Heightmap",
+          "valueType": 2
+        },
+        {
+          "id": 7,
+          "label": "Flows",
+          "valueType": 3
+        },
+        {
+          "id": 8,
+          "label": "Deposits",
+          "valueType": 3
+        },
+        {
+          "id": 9,
+          "label": "Displacement",
+          "valueType": 3
+        }
+      ],
+      "path": {
+        "defaultFeatherMeters": 32.0,
+        "defaultHeightMode": 0,
+        "defaultHeightOffset": 0.0,
+        "defaultSegmentType": 0,
+        "defaultWidthMeters": 64.0,
+        "edges": [],
+        "points": []
+      },
+      "ribbon": {
+        "baseElevationMeters": 15.0,
+        "crossfallPercent": 4.0,
+        "longitudinalGradePercent": 3.0,
+        "noiseAmplitudeMeters": 0.5,
+        "noiseOctaves": 4,
+        "noiseOnRoad": false,
+        "noiseSeed": 0,
+        "noiseWavelengthMeters": 6.0,
+        "roadHalfWidthMeters": 3.5,
+        "shoulderCrossfallPercent": 8.0,
+        "shoulderWidthMeters": 2.0,
+        "slopeGradePercent": 60.0,
+        "slopeWidthMeters": 8.0,
+        "texelSizeCentimeters": 8.0
+      },
+      "rock": {
+        "aspectVariation": 0.30000001192092896,
+        "backend": 1,
+        "bumpiness": 0.6000000238418579,
+        "coverage": 1.0,
+        "density": 8.0,
+        "edgeSharpness": 1.0,
+        "facetScale": 2.5,
+        "facetSharpness": 0.5,
+        "groundDetailLevelM": 0.0,
+        "heightJitter": 0.5,
+        "layerCount": 1,
+        "orientationRule": 0,
+        "rockHeight": 1.5,
+        "rockSizeMaxM": 10.0,
+        "rockSizeMinM": 5.0,
+        "rotationVariation": 1.0,
+        "seed": 0,
+        "style": 1
+      },
+      "scatter": {
+        "aspectVariation": 0.30000001192092896,
+        "backend": 1,
+        "coverage": 1.0,
+        "density": 8.0,
+        "groundDetailLevelM": 0.0,
+        "height": 0.0,
+        "heightJitter": 0.5,
+        "orientationRule": 0,
+        "rotationVariation": 1.0,
+        "seed": 0,
+        "shapeType": 0,
+        "sizeMaxM": 10.0,
+        "sizeMinM": 5.0
+      },
+      "sediment": {
+        "backend": 1,
+        "convertTerrainToSediment": true,
+        "emissionAmountM": 0.5,
+        "emissionTime": 0.0,
+        "iterations": 40,
+        "largestDetailLevelM": 8.0,
+        "maskContrast": 0.0,
+        "sedimentViscosity": 0.20000000298023224,
+        "stabilizationIterations": 2
+      },
+      "shape": {
+        "kind": 0,
+        "relativeHeightPercent": 50.0,
+        "scaleMeters": 1024.0
+      },
+      "snow": {
+        "backend": 1,
+        "emissionAmount": 1.0,
+        "emissionTime": 0.0,
+        "fillRadius": 3,
+        "iterationCount": 40,
+        "largestDetailLevelM": 8.0,
+        "maskFeatherM": 0.014999999664723873,
+        "maskMaxSnow": 1.0,
+        "maskThresholdM": 0.019999999552965164,
+        "motionSlopeLimitDeg": 35.0,
+        "slopeLimitMaxDeg": 60.0,
+        "slopeLimitMinDeg": 50.0,
+        "smoothingIterations": 4,
+        "surfaceSmoothing": 0.25,
+        "transportRate": 0.44999998807907104
+      },
+      "soil": {
+        "backend": 1,
+        "emissionAmount": 1.0,
+        "emissionTime": 0.0,
+        "iterationCount": 40,
+        "largestDetailLevelM": 8.0,
+        "maskFeatherM": 0.05000000074505806,
+        "maskMode": 0,
+        "maskThresholdM": 0.05000000074505806,
+        "motionSlopeLimitDeg": 32.0,
+        "settlingPasses": 4,
+        "slopeDependentEmission": 0.5,
+        "surfaceSmoothing": 0.10000000149011612,
+        "transportRate": 0.44999998807907104
+      },
+      "title": "Multi-Scale Erosion"
+    }
+  ],
+  "previewPinId": 0,
+  "previewStage": 7,
+  "selectedNodeId": 4,
+  "selectedNodeIds": [
+    4
+  ]
+}

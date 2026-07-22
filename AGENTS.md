@@ -37,9 +37,22 @@
 - `docs/design/` 配下は設計資料、仕様メモ、調査資料を置く場所として使う。
 - `docs/goals.md`、`docs/plan.md`、`docs/progress.md` は進捗管理用の入口として保つ。
 
+## ビルド
+
+terrain-editor を fork したコードベース (C++20 / CMake / vcpkg、Win32 + Direct3D 12)。
+
+```powershell
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build --config Debug
+./build/Debug/roadside_editor.exe
+```
+
+- `roadside_editor.exe` は実行中ロックされる。リビルド前に終了する (LNK1168 対策)。
+- ソースファイルは **UTF-8 no BOM** で保存する (MSVC `/utf-8`)。
+
 ## バージョン管理
 
-- アプリのバージョンは `package.json` の `version` を基準にする。
+- アプリのバージョンは `CMakeLists.txt` の `project(RoadsideEditor VERSION x.y.z ...)` を基準にする。ユーザー向けの変更ではバージョンを上げ、ソースは生成される `Version.h` から参照する (`src/Version.h.in`)。
 - ユーザー向けの明確な変更を行った場合は、必要に応じて `docs/changelog.md` に記録する。
 - `docs/changelog.md` は日本語で書く。
 - 未確定の変更は、必要に応じて先頭付近に「未リリース」セクションを作って記録する。
@@ -105,6 +118,6 @@ Write-Utf8NoBom -Path $file -Content ($old+\"`nYOUR_TEXT_HERE`n\")
 
 ## 検証
 
-- フロントエンドや型に関わる変更後は、可能な限り `npm run build` を実行する。
-- バックエンド Python の単体ファイル変更では、可能な限り `py_compile` などで構文確認する。
+- コード変更後は、可能な限り `cmake --build build --config Debug` を実行してビルドを通す。
+- テストフレームワークは未整備。動作確認は UI 経由の手動確認か、必要に応じて使い捨てのスモークテスト (node_graph + evaluation を直接リンク) で行う。
 - 検証できなかった場合は、その理由を作業報告に書く。

@@ -1,0 +1,17 @@
+build/
+build-vcpkg/
+out/
+.vs/
+.vscode/
+.vcpkg/
+.claude/
+CMakeUserPresets.json
+data/
+*.user
+*.suo
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+ref/
