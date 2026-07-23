@@ -57,6 +57,7 @@ nlohmann::json MakeBasicHeightfieldSettingsJson(const rock::Node& node, const As
             {"noiseOctaves", node.ribbon.noiseOctaves},
             {"noiseSeed", node.ribbon.noiseSeed},
             {"noiseOnRoad", node.ribbon.noiseOnRoad},
+            {"worldPreview", node.ribbon.worldPreview},
         }},
         {"heightmapBlur", {
             {"radius", node.heightmapBlur.radius},
@@ -553,6 +554,7 @@ void ReadBasicHeightfieldSettingsJson(const nlohmann::json& nodeJson, rock::Node
     node.ribbon.noiseOctaves = std::clamp(nodeRibbonJson.value("noiseOctaves", node.ribbon.noiseOctaves), 1, 8);
     node.ribbon.noiseSeed = std::clamp(nodeRibbonJson.value("noiseSeed", node.ribbon.noiseSeed), 0, 1000000);
     node.ribbon.noiseOnRoad = nodeRibbonJson.value("noiseOnRoad", node.ribbon.noiseOnRoad);
+    node.ribbon.worldPreview = nodeRibbonJson.value("worldPreview", node.ribbon.worldPreview);
 }
 
 void ReadMultiScaleErosionSettingsJson(const nlohmann::json& nodeJson, rock::Node& node)

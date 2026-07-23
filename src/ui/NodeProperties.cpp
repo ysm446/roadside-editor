@@ -466,6 +466,10 @@ bool DrawRibbonProperties(rock::Node& editableNode)
     {
         EvaluateGraph();
     }
+    if (DrawPropertyBoolRow("World Preview", "RibbonWorldPreview", &ribbon.worldPreview, "Ribbon preview mode changed", Tr("Show the swept ribbon mesh in world space in the 3D view (CPU Mesh backend only). Off shows the UV grid as a heightfield. The 2D view always shows UV space.", "3D ビューにワールド空間の掃引リボンメッシュを表示します (CPU Mesh バックエンドのみ)。オフの場合はUVグリッドをハイトフィールドとして表示します。2D ビューは常にUV空間です。"), rock::RibbonSettings{}.worldPreview))
+    {
+        EvaluateGraph();
+    }
     ImGui::EndTable();
     return true;
 }

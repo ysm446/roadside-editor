@@ -369,6 +369,10 @@ struct RibbonSettings
     int noiseOctaves = 4;
     int noiseSeed = 0;
     bool noiseOnRoad = false;               // true で道路面にもノイズを乗せる (既定は路肩・法面のみ)
+    // 3D ビューにワールド空間の掃引リボンメッシュを表示する。オフのときは
+    // UVグリッドをそのままハイトフィールドとして表示する (2D ビューは常にUV空間)。
+    // ワールド表示は CPU Mesh プレビューバックエンドでのみ有効。
+    bool worldPreview = true;
 };
 
 struct HeightmapBlurSettings
@@ -1104,6 +1108,10 @@ struct HeightfieldPipeline
     bool useRibbon = false;
     GraphId ribbonNodeId = 0;
     RibbonSettings ribbon;
+    // Ribbon の Path 入力に接続されたセンターライン (未接続なら hasRibbonPath = false
+    // で直線デモセンターラインにフォールバック)。
+    bool hasRibbonPath = false;
+    PathSettings ribbonPath;
     bool useMaskSource = false;
     GraphId maskSourceNodeId = 0;
     HeightmapFromMaskSettings heightmapFromMask;

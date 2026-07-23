@@ -55,9 +55,10 @@ constexpr std::array<PinDefinition, 5> kMultiScaleErosionPins = {{
     {PinKind::Output, ValueType::Mask, "Displacement"},
 }};
 
-// Ribbon: UV空間リボンソース。Heightmap 出力はポテンシャル φ、
-// Displacement 出力は初期変位 h の確認用。
-constexpr std::array<PinDefinition, 2> kRibbonSourcePins = {{
+// Ribbon: UV空間リボンソース。Path 入力はセンターライン (未接続なら直線デモ)、
+// Heightmap 出力はポテンシャル φ、Displacement 出力は初期変位 h の確認用。
+constexpr std::array<PinDefinition, 3> kRibbonSourcePins = {{
+    {PinKind::Input, ValueType::Path, "Path"},
     {PinKind::Output, ValueType::HeightField, "Heightmap"},
     {PinKind::Output, ValueType::Mask, "Displacement"},
 }};
@@ -230,6 +231,7 @@ uint64_t HashRibbonSettings(const RibbonSettings& settings, int resolution)
     HashCombine(hash, static_cast<uint64_t>(settings.noiseOctaves));
     HashCombine(hash, static_cast<uint64_t>(settings.noiseSeed));
     HashCombine(hash, static_cast<uint64_t>(settings.noiseOnRoad ? 1 : 0));
+    HashCombine(hash, static_cast<uint64_t>(settings.worldPreview ? 1 : 0));
     HashCombine(hash, static_cast<uint64_t>(resolution));
     return hash;
 }
@@ -2550,7 +2552,7 @@ MeshData BuildMeshFromHeightPipeline(const HeightfieldPipeline& pipeline, int re
     const int simulationResolution = std::clamp(pipeline.simulationResolution, 2, 2048);
     const float terrainSizeMeters = std::max(1.0f, pipeline.terrainSizeMeters);
     HeightfieldGrid grid = pipeline.useRibbon
-        ? BuildHeightfieldFromRibbon(pipeline.ribbon, simulationResolution, message)
+        ? BuildHeightfieldFromRibbon(pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, simulationResolution, message)
         : (pipeline.useShape
             ? BuildHeightfieldFromShape(pipeline.shape, simulationResolution, terrainSizeMeters, message)
             : BuildHeightfieldFromHeightmap(pipeline.heightmap, simulationResolution, terrainSizeMeters, message));
@@ -2570,6 +2572,12 @@ MeshData BuildMeshFromHeightPipeline(const HeightfieldPipeline& pipeline, int re
     if (previewGrid != nullptr)
     {
         *previewGrid = grid;
+    }
+    if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
+    {
+        const RibbonCenterline centerline = BuildRibbonCenterline(
+            pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
+        return BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution);
     }
     return BuildMeshFromHeightfield(grid, resolution);
 }
@@ -2605,13 +2613,17 @@ HeightfieldGrid NodeGraph::EvaluateHeightPipelineCached(const HeightfieldPipelin
             }
         }
     }
-    const uint64_t sourceHash = pipeline.useMaskSource
+    uint64_t sourceHash = pipeline.useMaskSource
         ? HashHeightmapFromMaskSettings(pipeline.heightmapFromMask, simulationResolution, terrainSizeMeters)
         : (pipeline.useRibbon
             ? HashRibbonSettings(pipeline.ribbon, simulationResolution)
             : (pipeline.useShape
                 ? HashShapeSettings(pipeline.shape, simulationResolution, terrainSizeMeters)
                 : HashHeightmapSettings(pipeline.heightmap, simulationResolution, terrainSizeMeters)));
+    if (pipeline.useRibbon && pipeline.hasRibbonPath)
+    {
+        HashCombine(sourceHash, HashPathSettings(pipeline.ribbonPath));
+    }
     HeightfieldNodeCache& sourceCache = heightfieldCache_[sourceNodeId];
     if (!sourceCache.valid ||
         sourceCache.resolution != simulationResolution ||
@@ -2628,7 +2640,7 @@ HeightfieldGrid NodeGraph::EvaluateHeightPipelineCached(const HeightfieldPipelin
         else
         {
             sourceCache.grid = pipeline.useRibbon
-                ? BuildHeightfieldFromRibbon(pipeline.ribbon, simulationResolution, &sourceMessage)
+                ? BuildHeightfieldFromRibbon(pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, simulationResolution, &sourceMessage)
                 : (pipeline.useShape
                     ? BuildHeightfieldFromShape(pipeline.shape, simulationResolution, terrainSizeMeters, &sourceMessage)
                     : BuildHeightfieldFromHeightmap(pipeline.heightmap, simulationResolution, terrainSizeMeters, &sourceMessage));
@@ -2776,7 +2788,16 @@ MeshData NodeGraph::BuildMeshFromHeightPipelineCached(const HeightfieldPipeline&
         meshCache.inputHash != meshInputHash ||
         meshCache.previewField != previewField)
     {
-        meshCache.mesh = BuildMeshFromHeightfield(grid, resolution);
+        if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
+        {
+            const RibbonCenterline centerline = BuildRibbonCenterline(
+                pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
+            meshCache.mesh = BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution);
+        }
+        else
+        {
+            meshCache.mesh = BuildMeshFromHeightfield(grid, resolution);
+        }
         meshCache.valid = true;
         meshCache.resolution = resolution;
         meshCache.inputHash = meshInputHash;
@@ -3004,6 +3025,16 @@ void NodeGraph::ReplaceNodes(std::vector<Node> nodes)
             if (node.inputs.size() >= 2 && node.inputs[1].label == "B")
             {
                 node.inputs[1].label = "Background";
+            }
+        }
+        else if (node.kind == NodeKind::Ribbon)
+        {
+            const bool hasPathInput = std::ranges::any_of(node.inputs, [](const Pin& pin) {
+                return pin.valueType == ValueType::Path;
+            });
+            if (!hasPathInput)
+            {
+                node.inputs.insert(node.inputs.begin(), Pin{AllocateGraphId(), node.id, PinKind::Input, ValueType::Path, "Path"});
             }
         }
         else if (node.kind == NodeKind::MultiScaleErosion)
@@ -3752,6 +3783,21 @@ HeightfieldPipeline NodeGraph::PipelineToNode(const Node& targetNode) const
             pipeline.useRibbon = true;
             pipeline.ribbonNodeId = node->id;
             pipeline.ribbon = node->ribbon;
+            // Path 入力に接続されたセンターラインを取り込む (未接続なら直線デモ)。
+            for (const Pin& input : node->inputs)
+            {
+                if (input.valueType != ValueType::Path)
+                {
+                    continue;
+                }
+                const UpstreamConnection upstream = FindUpstreamConnectionForPin(input.id);
+                if (upstream.node != nullptr && upstream.node->kind == NodeKind::Path)
+                {
+                    pipeline.hasRibbonPath = true;
+                    pipeline.ribbonPath = upstream.node->path;
+                }
+                break;
+            }
             break;
         }
         else if (node->kind == NodeKind::HeightmapFromMask)
