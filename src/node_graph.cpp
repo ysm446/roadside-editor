@@ -2577,7 +2577,7 @@ MeshData BuildMeshFromHeightPipeline(const HeightfieldPipeline& pipeline, int re
     {
         const RibbonCenterline centerline = BuildRibbonCenterline(
             pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
-        return BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution);
+        return BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution, 1.0f);
     }
     return BuildMeshFromHeightfield(grid, resolution);
 }
@@ -2780,8 +2780,13 @@ MeshData NodeGraph::BuildMeshFromHeightPipelineCached(const HeightfieldPipeline&
         *previewGrid = grid;
     }
 
+    const float uvGridSpacing = std::clamp(settings_.preview.uvGridSpacingMeters, 0.1f, 100.0f);
     uint64_t meshInputHash = heightHash;
     HashCombine(meshInputHash, static_cast<uint64_t>(previewField));
+    if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
+    {
+        HashCombine(meshInputHash, HashFloat(uvGridSpacing));
+    }
     MeshNodeCache& meshCache = meshCache_[sourceNodeId];
     if (!meshCache.valid ||
         meshCache.resolution != resolution ||
@@ -2792,7 +2797,7 @@ MeshData NodeGraph::BuildMeshFromHeightPipelineCached(const HeightfieldPipeline&
         {
             const RibbonCenterline centerline = BuildRibbonCenterline(
                 pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
-            meshCache.mesh = BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution);
+            meshCache.mesh = BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution, uvGridSpacing);
         }
         else
         {

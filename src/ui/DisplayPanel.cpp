@@ -225,6 +225,19 @@ void DrawDisplaySettingsPanel(DisplayPanelState state)
                 SaveAppSettings(state);
             }
         }
+        if (DrawPropertyBoolRow(Tr("UV Grid", "UVグリッド"), "DisplayUvGrid", &settings.preview.showUvGrid, "UV grid visibility changed", Tr("Overlay world-proportional UV grid lines and ribbon profile boundaries (centerline / road edge / shoulder edge / slope toe) on the 2D view. In the 3D view the ribbon world mesh carries iso-u/iso-v lines at the same spacing - enable Wireframe to see them.", "2D ビューにワールド比例のUVグリッド線とリボンのプロファイル境界線 (センターライン / 道路端 / 路肩端 / 法尻) を重ねます。3D ビューではリボンのワールドメッシュが同じ間隔の iso-u/iso-v 線を持ちます (ワイヤーフレーム表示で見えます)。"), rock::PreviewSettings{}.showUvGrid, true))
+        {
+            SaveAppSettings(state);
+        }
+        if (settings.preview.showUvGrid)
+        {
+            if (DrawPropertyFloatRow(Tr("UV Grid Spacing (m)", "UVグリッド間隔 (m)"), "DisplayUvGridSpacing", &settings.preview.uvGridSpacingMeters, 0.1f, 100.0f, rock::PreviewSettings{}.uvGridSpacingMeters, "UV grid spacing changed", false, Tr("World-space spacing of the UV grid lines. Every 5th line is drawn brighter.", "UVグリッド線のワールド間隔です。5本ごとに明るい線になります。")))
+            {
+                settings.preview.uvGridSpacingMeters = std::clamp(settings.preview.uvGridSpacingMeters, 0.1f, 100.0f);
+                SaveAppSettings(state);
+                EvaluateGraph(state);
+            }
+        }
         int displayModeInt = ToDisplayModeIndex(CurrentViewportDisplayMode(settings));
         if (DrawPropertyComboRow(Tr("Display Mode", "表示モード"), "ViewportDisplayMode", &displayModeInt, Tr("Simple\0PBR\0Sky\0\0", "シンプル\0PBR\0天球\0\0"), Tr("Simple: flat and lightweight. PBR: realistic lighting with a solid background. Sky: sky background with realistic lighting.", "シンプル: フラットで軽い表示。PBR: 単色背景でリアル寄りのライティング。天球: 天球背景とリアル寄りのライティングです。"), ToDisplayModeIndex(ViewportDisplayMode::Simple)))
         {

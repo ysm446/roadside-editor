@@ -1033,5 +1033,120 @@
   "selectedNodeId": 7,
   "selectedNodeIds": [
     7
-  ]
+  ],
+  "settings": {
+    "clouds": {
+      "absorption": 0.05999999865889549,
+      "altitudeMax": 3500.0,
+      "altitudeMin": 1500.0,
+      "animate": false,
+      "color": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "coverage": 0.550000011920929,
+      "densityMultiplier": 1.0,
+      "enabled": false,
+      "fieldFalloff": 2000.0,
+      "fieldRadius": 6000.0,
+      "horizontalScale": 4000.0,
+      "lightStepMeters": 80.0,
+      "loopPhase": 0.0,
+      "phaseEccentricity": 0.4000000059604645,
+      "seed": 1,
+      "selfShadowEnabled": true,
+      "shadowAmbientStrength": 0.44999998807907104,
+      "shadowStrength": 0.699999988079071,
+      "windDirectionDegrees": 45.0,
+      "windSpeedMetersPerSec": 0.0
+    },
+    "display": {
+      "cloudsEnabled": false,
+      "mode": 0
+    },
+    "preview": {
+      "ambientStrength": 0.3799999952316284,
+      "aoEnabled": false,
+      "aoRadius": 100.0,
+      "aoStrength": 0.699999988079071,
+      "autoExposureBiasEv": 0.0,
+      "autoExposureMaxEv": 4.0,
+      "autoExposureMinEv": -4.0,
+      "autoExposureSpeed": 1.0,
+      "colorTemperatureKelvin": 6500.0,
+      "depthOfFieldEnabled": false,
+      "dofApertureBlades": 6,
+      "dofApertureRotationDegrees": 0.0,
+      "dofApertureShape": 0,
+      "dofFStop": 5.599999904632568,
+      "dofFocusDistanceMeters": 1200.0,
+      "dofHighlightBoost": 0.0,
+      "dofMaxBlurPixels": 14.0,
+      "dofMiniatureEnabled": false,
+      "dofMiniatureScale": 10.0,
+      "dofSensorHeightMm": 24.0,
+      "exposureEv": 0.0,
+      "exposureMode": 1,
+      "gridCellCount": 10,
+      "gridCellSizeMeters": 100.0,
+      "gridColor": [
+        0.20000000298023224,
+        0.20000000298023224,
+        0.20000000298023224
+      ],
+      "hdrViewportEnabled": false,
+      "lightingMode": 0,
+      "maskPreviewUseNearestHeightmap": false,
+      "shadowBias": 0.0035000001080334187,
+      "shadowStrength": 0.36000001430511475,
+      "showGrid": true,
+      "showUvGrid": true,
+      "simulationResolution": 512,
+      "sunAzimuthDegrees": 315.0,
+      "sunDay": 21,
+      "sunDirectionMode": 0,
+      "sunElevationDegrees": 38.0,
+      "sunIntensity": 1.0499999523162842,
+      "sunLatitudeDegrees": 35.0,
+      "sunLongitudeDegrees": 139.0,
+      "sunMonth": 6,
+      "sunTimeAnimate": false,
+      "sunTimeDayLengthSeconds": 60.0,
+      "sunTimeHours": 14.0,
+      "sunTimeSkipNight": true,
+      "sunUtcOffsetHours": 9.0,
+      "terrainBoundaryMode": 1,
+      "terrainSizeMeters": 1024.0,
+      "uvGridSpacingMeters": 4.0,
+      "waterAnimationEnabled": true,
+      "waterColor": [
+        0.03999999910593033,
+        0.23999999463558197,
+        0.36000001430511475
+      ],
+      "waterEnabled": false,
+      "waterFresnelPower": 5.0,
+      "waterLevelMeters": 0.0,
+      "waterOpacity": 0.5199999809265137,
+      "waterReflectionStrength": 1.0,
+      "waterRefractionStrength": 0.25,
+      "waterRefractiveIndex": 1.3300000429153442,
+      "waterSsrEnabled": false,
+      "waterWavesScale": 24.0
+    },
+    "sky": {
+      "atmosphereDensity": 1.0,
+      "groundAlbedo": [
+        0.30000001192092896,
+        0.30000001192092896,
+        0.30000001192092896
+      ],
+      "mieEccentricity": 0.7599999904632568,
+      "mieStrength": 0.20000000298023224,
+      "mode": 0,
+      "sunGlowStrength": 0.30000001192092896,
+      "sunSizeDegrees": 2.5
+    }
+  }
 }

@@ -111,6 +111,8 @@ nlohmann::json MakeProjectSettingsJson(const rock::GraphSettings& graphSettings)
             {"sunTimeDayLengthSeconds", preview.sunTimeDayLengthSeconds},
             {"sunTimeSkipNight", preview.sunTimeSkipNight},
             {"showGrid", preview.showGrid},
+            {"showUvGrid", preview.showUvGrid},
+            {"uvGridSpacingMeters", preview.uvGridSpacingMeters},
             {"gridCellCount", preview.gridCellCount},
             {"gridCellSizeMeters", preview.gridCellSizeMeters},
             {"gridColor", {
@@ -306,6 +308,8 @@ void ReadPreviewSettingsJson(const nlohmann::json& settingsJson, rock::PreviewSe
     preview.sunTimeDayLengthSeconds = std::clamp(previewJson.value("sunTimeDayLengthSeconds", preview.sunTimeDayLengthSeconds), 5.0f, 3600.0f);
     preview.sunTimeSkipNight = previewJson.value("sunTimeSkipNight", preview.sunTimeSkipNight);
     preview.showGrid = previewJson.value("showGrid", preview.showGrid);
+    preview.showUvGrid = previewJson.value("showUvGrid", preview.showUvGrid);
+    preview.uvGridSpacingMeters = std::clamp(previewJson.value("uvGridSpacingMeters", preview.uvGridSpacingMeters), 0.1f, 100.0f);
     preview.gridCellCount = std::clamp(previewJson.value("gridCellCount", preview.gridCellCount), 1, 200);
     preview.gridCellSizeMeters = std::clamp(previewJson.value("gridCellSizeMeters", preview.gridCellSizeMeters), 1.0f, 10000.0f);
     ReadColor3Json(previewJson, "gridColor", preview.gridColor, 1.0f);

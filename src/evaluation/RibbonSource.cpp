@@ -449,7 +449,7 @@ HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const
     return grid;
 }
 
-MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const RibbonCenterline& centerline, int meshResolution)
+MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const RibbonCenterline& centerline, int meshResolution, float uvGridSpacingMeters)
 {
     MeshData mesh;
     const int n = grid.resolution;
@@ -572,16 +572,44 @@ MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings&
         }
     }
 
-    // ワイヤーフレーム用エッジ (粗い格子線のみ)。
-    const int edgeStride = 4;
-    for (int vi = 0; vi < vNum; vi += edgeStride)
+    // ワイヤーフレーム用エッジ = UV確認の iso-u / iso-v 線。UV空間で
+    // uvGridSpacingMeters ごとに引くので、ワールドではカーブ内側で詰まり
+    // 外側で開く (= メトリック歪みの可視化)。
+    const float spacing = std::max(uvGridSpacingMeters, texel * static_cast<float>(stride));
+    const auto uIndexForMeters = [&](float meters) {
+        return std::clamp(static_cast<int>(std::lround(meters / texel / static_cast<float>(stride))), 0, uNum - 1);
+    };
+    const auto vIndexForMeters = [&](float meters) {
+        return std::clamp(static_cast<int>(std::lround((meters / texel + static_cast<float>(bandTexels)) / static_cast<float>(stride))), 0, vNum - 1);
+    };
+    // iso-v 線 (u 方向に走る線): v = 0, ±spacing, ±2·spacing, ...
+    std::vector<int> isoVRows;
+    for (float v = 0.0f; v <= bandHalf + 0.5f * spacing; v += spacing)
+    {
+        isoVRows.push_back(vIndexForMeters(v));
+        if (v > 0.0f)
+        {
+            isoVRows.push_back(vIndexForMeters(-v));
+        }
+    }
+    std::ranges::sort(isoVRows);
+    isoVRows.erase(std::unique(isoVRows.begin(), isoVRows.end()), isoVRows.end());
+    for (const int vi : isoVRows)
     {
         for (int ui = 0; ui + 1 < uNum; ++ui)
         {
             mesh.edges.push_back({static_cast<uint32_t>(vi * uNum + ui), static_cast<uint32_t>(vi * uNum + ui + 1)});
         }
     }
-    for (int ui = 0; ui < uNum; ui += edgeStride)
+    // iso-u 線 (v 方向に走る線): u = 0, spacing, 2·spacing, ...
+    std::vector<int> isoUCols;
+    for (float u = 0.0f; u <= centerline.totalLengthMeters + 0.5f * spacing; u += spacing)
+    {
+        isoUCols.push_back(uIndexForMeters(u));
+    }
+    std::ranges::sort(isoUCols);
+    isoUCols.erase(std::unique(isoUCols.begin(), isoUCols.end()), isoUCols.end());
+    for (const int ui : isoUCols)
     {
         for (int vi = 0; vi + 1 < vNum; ++vi)
         {

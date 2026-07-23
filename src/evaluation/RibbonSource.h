@@ -36,5 +36,7 @@ HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const
 // 侵食後のUVグリッドをワールド空間の掃引リボンメッシュへ復元する (3D プレビュー用)。
 // 頂点位置: 水平 = C(s) + v・B、標高 = φ (= heights)。メッシュは道路〜法尻の
 // バンドのみ生成し、カーブ内側のカスプ回避のため v は 1/κ 未満にクランプする。
-MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const RibbonCenterline& centerline, int meshResolution);
+// エッジは uvGridSpacingMeters 間隔の iso-u / iso-v 線 (UV確認用。ワイヤー
+// フレーム表示で見える。UV等間隔なのでカーブ内側では詰まって見える)。
+MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const RibbonCenterline& centerline, int meshResolution, float uvGridSpacingMeters);
 } // namespace rock

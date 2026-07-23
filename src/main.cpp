@@ -9891,6 +9891,50 @@ void DrawHeightfieldMapPreview(const ImVec2& min, const ImVec2& max)
             drawList->AddRectFilled(cellMin, cellMax, MapPreviewColor(value, maskPreview, g_graph.Settings().preview.maskShading, x, z));
         }
     }
+    // UV確認表示: ワールド比例のUVグリッド線 + リボンのプロファイル境界線。
+    // ワールド比例UVなので「Nメートルごと」の線が等間隔の直線になる。
+    if (g_graph.Settings().preview.showUvGrid && grid.terrainSizeMeters > 0.0f)
+    {
+        const float spacing = std::clamp(g_graph.Settings().preview.uvGridSpacingMeters, 0.1f, 100.0f);
+        const float pixelsPerMeter = mapSize / grid.terrainSizeMeters;
+        const float spacingPx = spacing * pixelsPerMeter;
+        if (spacingPx >= 4.0f)
+        {
+            const ImU32 minorColor = IM_COL32(255, 255, 255, 26);
+            const ImU32 majorColor = IM_COL32(255, 255, 255, 64);
+            const int lineCount = static_cast<int>(grid.terrainSizeMeters / spacing);
+            for (int i = 0; i <= lineCount; ++i)
+            {
+                const float offset = static_cast<float>(i) * spacingPx;
+                const ImU32 color = (i % 5 == 0) ? majorColor : minorColor;
+                drawList->AddLine(ImVec2(mapMin.x + offset, mapMin.y), ImVec2(mapMin.x + offset, mapMax.y), color);
+                drawList->AddLine(ImVec2(mapMin.x, mapMin.y + offset), ImVec2(mapMax.x, mapMin.y + offset), color);
+            }
+        }
+        const rock::HeightfieldPipeline uvPipeline = g_graph.PreviewPipeline();
+        if (uvPipeline.useRibbon)
+        {
+            // v [m] → 画面Y。+v がマップ上側 (描画は srcZ を上下反転しているため)。
+            const auto screenYForV = [&](float v) {
+                return mapMin.y + mapSize * (0.5f - v / grid.terrainSizeMeters);
+            };
+            const float roadHalf = std::max(0.1f, uvPipeline.ribbon.roadHalfWidthMeters);
+            const float shoulderEdge = roadHalf + std::max(0.0f, uvPipeline.ribbon.shoulderWidthMeters);
+            const float slopeToe = shoulderEdge + std::max(0.0f, uvPipeline.ribbon.slopeWidthMeters);
+            const ImU32 centerColor = IM_COL32(120, 200, 255, 140);
+            const ImU32 roadColor = IM_COL32(255, 180, 80, 150);
+            const ImU32 shoulderColor = IM_COL32(255, 230, 110, 120);
+            const ImU32 toeColor = IM_COL32(140, 220, 130, 120);
+            drawList->AddLine(ImVec2(mapMin.x, screenYForV(0.0f)), ImVec2(mapMax.x, screenYForV(0.0f)), centerColor);
+            for (const float sign : {1.0f, -1.0f})
+            {
+                drawList->AddLine(ImVec2(mapMin.x, screenYForV(sign * roadHalf)), ImVec2(mapMax.x, screenYForV(sign * roadHalf)), roadColor);
+                drawList->AddLine(ImVec2(mapMin.x, screenYForV(sign * shoulderEdge)), ImVec2(mapMax.x, screenYForV(sign * shoulderEdge)), shoulderColor);
+                drawList->AddLine(ImVec2(mapMin.x, screenYForV(sign * slopeToe)), ImVec2(mapMax.x, screenYForV(sign * slopeToe)), toeColor);
+            }
+        }
+    }
+
     drawList->AddRect(mapMin, mapMax, ThemeColor("border", ImVec4(0.20f, 0.23f, 0.22f, 0.85f)));
     drawList->PopClipRect();
     DrawPathMapOverlay(drawList, mapMin, mapMax);

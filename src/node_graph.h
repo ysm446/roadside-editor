@@ -855,6 +855,11 @@ struct PreviewSettings
     bool showSurface = true;
     bool showWireframe = false;
     bool showGrid = true;
+    // UV確認表示: 2D ビューにワールド比例のUVグリッド線とリボンのプロファイル
+    // 境界線を重ねる。3D のリボンワールドメッシュは同じ間隔の iso-u/iso-v 線を
+    // ワイヤーフレーム用エッジとして持つ (ワイヤーフレーム表示で見える)。
+    bool showUvGrid = false;
+    float uvGridSpacingMeters = 1.0f;
     int lightingMode = 0;
     bool hdrViewportEnabled = false;
     ExposureMode exposureMode = ExposureMode::Auto;

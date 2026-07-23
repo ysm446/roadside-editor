@@ -1,7 +1,7 @@
 # Progress
 
 作成日時: 2026-07-22 22:27
-更新日時: 2026-07-23 09:14
+更新日時: 2026-07-23 09:48
 
 ## 現在の状態
 
@@ -17,6 +17,7 @@ Phase 0〜1 完了、Phase 3 の簡易版パイプラインが貫通した。`Pa
 - 2026-07-23: `Ribbon` ソースノードを実装([src/evaluation/RibbonSource.cpp](../../src/evaluation/RibbonSource.cpp))。直線センターライン + 縦断勾配のデモ道路プロファイル(道路/路肩/法面)をワールド比例UV(1テクセル = 指定cm)でベイク。heights = φ = P_z + h・N_z、`HeightfieldGrid.baseZ / normalZ` に P_z / N_z を保持。初期変位 h として fBm ノイズの山を路肩・法面ゾーンに生成
 - 2026-07-23: `Multi-Scale Erosion` に `Displacement` 出力ピンを追加。`HeightfieldPreviewField::Displacement` で h = (φ - P_z)/N_z を可視化・マスク書き出し(0.5 = 変位ゼロの符号付き正規化)
 - 2026-07-23: ヘッドレスのスモークテストで Ribbon → MSE → h 復元の貫通を確認(512², 8cm/texel, N_z 0.86〜1.0, φ 正値域)
+- 2026-07-23: UV確認表示を追加。2D ビューにUVグリッド線 + プロファイル境界線のオーバーレイ、3D ワールドメッシュに同間隔の iso-u/iso-v ワイヤーフレーム(表示パネル > UVグリッド、間隔はプロジェクト設定に保存)。§8.3 検証ツール(メトリック可視化)の入り口
 - 2026-07-23: 曲線センターライン対応(Phase 1 完了)。`Ribbon` に Path 入力ピンを追加し、既存 `Path` ノードのスプライン(Catmull-Rom / 直線)をチェーン化 → 弧長リサンプリングして掃引ベイク。曲率 κ(u) を計算し N_z の $s_u = 1 - \kappa v$ 補正に使用。`BuildRibbonWorldMesh` で曲線リボンのワールドメッシュを 3D プレビュー表示(World Preview 設定、カスプは $0.95/\kappa$ クランプ)。デモプロジェクトを S 字カーブ(80m、最小半径 16m、82m アトラス 16cm/texel)に更新し、俯瞰スプラット画像でスイープ形状・クラウン・縦断勾配を検証
 
 ## 未完了
