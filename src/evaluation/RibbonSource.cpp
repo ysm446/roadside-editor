@@ -1,10 +1,13 @@
 #include "RibbonSource.h"
 
+#include "UvChecker.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <execution>
 #include <format>
+#include <limits>
 #include <numeric>
 #include <utility>
 #include <vector>
@@ -77,6 +80,16 @@ float FbmNoise(float x, float y, int octaves, uint32_t seed)
 inline float TexelMeters(const RibbonSettings& settings)
 {
     return std::clamp(settings.texelSizeCentimeters, 0.5f, 100.0f) * 0.01f;
+}
+
+// メッシュ / アイランドバンドが法尻の外側に持つ余白
+constexpr float kToeMarginMeters = 2.0f;
+
+inline float BandHalfMeters(const RibbonSettings& settings)
+{
+    return std::max(0.1f, settings.roadHalfWidthMeters) +
+        std::max(0.0f, settings.shoulderWidthMeters) +
+        std::max(0.0f, settings.slopeWidthMeters) + kToeMarginMeters;
 }
 
 struct ChainPoint
@@ -226,9 +239,9 @@ std::vector<DenseSample> DensifyChain(const std::vector<ChainPoint>& chain, floa
 }
 } // namespace
 
-RibbonCenterline BuildRibbonCenterline(const RibbonSettings& settings, const PathSettings* path, int resolution)
+RibbonCenterline BuildRibbonCenterline(const RibbonSettings& settings, const PathSettings* path, int sampleCount)
 {
-    const int n = std::clamp(resolution, 2, 2048);
+    const int n = std::clamp(sampleCount, 2, 8192);
     const float texel = TexelMeters(settings);
     const float longGrade = settings.longitudinalGradePercent * 0.01f;
 
@@ -315,6 +328,49 @@ RibbonCenterline BuildRibbonCenterline(const RibbonSettings& settings, const Pat
     return centerline;
 }
 
+RibbonAtlasLayout ComputeRibbonAtlasLayout(const RibbonSettings& settings, float totalLengthMeters, int resolution)
+{
+    const int n = std::clamp(resolution, 2, 2048);
+    RibbonAtlasLayout layout;
+    layout.texelMeters = TexelMeters(settings);
+    layout.bandHalfTexels = std::min(
+        static_cast<int>(BandHalfMeters(settings) / layout.texelMeters), (n - 1) / 2);
+
+    if (!settings.packIslands)
+    {
+        layout.islands.push_back({0.0f, n, (n - 1) / 2});
+        return layout;
+    }
+
+    const int marginTexels = std::max(1, static_cast<int>(std::max(0.0f, settings.islandMarginMeters) / layout.texelMeters));
+    const int rowHeight = 2 * layout.bandHalfTexels + 1 + marginTexels;
+    const int lengthTexels = std::max(2, static_cast<int>(std::ceil(totalLengthMeters / layout.texelMeters)));
+    int islandCount = (lengthTexels + n - 1) / n;
+    const int maxIslands = std::max(1, n / rowHeight);
+    if (islandCount > maxIslands)
+    {
+        islandCount = maxIslands;
+        layout.truncated = true;
+    }
+    const int startRow = std::max(0, (n - islandCount * rowHeight) / 2);
+    for (int k = 0; k < islandCount; ++k)
+    {
+        RibbonIsland island;
+        island.uStartMeters = static_cast<float>(k) * static_cast<float>(n) * layout.texelMeters;
+        island.uTexels = std::min(n, lengthTexels - k * n);
+        island.rowCenter = std::min(n - 1, startRow + k * rowHeight + marginTexels / 2 + layout.bandHalfTexels);
+        if (island.uTexels >= 2)
+        {
+            layout.islands.push_back(island);
+        }
+    }
+    if (layout.islands.empty())
+    {
+        layout.islands.push_back({0.0f, std::min(n, lengthTexels), (n - 1) / 2});
+    }
+    return layout;
+}
+
 HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const PathSettings* path, int resolution, std::string* message)
 {
     HeightfieldGrid grid;
@@ -344,8 +400,6 @@ HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const
     grid.age.assign(cellCount, 0.0f);
     grid.baseZ.assign(cellCount, 0.0f);
     grid.normalZ.assign(cellCount, 1.0f);
-
-    const RibbonCenterline centerline = BuildRibbonCenterline(settings, path, n);
 
     // 横断プロファイル: センターライン基準の P_z オフセット (縦断を除く)。
     // v は横方向オフセット (m)、+v 側が片勾配の下り側。
@@ -385,6 +439,116 @@ HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const
         }
         return SmoothStep01(std::clamp((a - roadHalf) / shoulderWidth, 0.0f, 1.0f));
     };
+
+    // パスがあり packIslands のときはアイランド折返しベイク、それ以外は
+    // 従来の単一バンド (アトラス全域、法尻の外は平坦継続) ベイク。
+    const RibbonCenterline probe = BuildRibbonCenterline(settings, path, 2);
+    const bool packed = settings.packIslands && probe.fromPath;
+
+    if (packed)
+    {
+        const float totalLength = probe.totalLengthMeters;
+        const int centerSamples = std::clamp(static_cast<int>(std::ceil(totalLength / texelMeters)) + 1, 2, 8192);
+        const RibbonCenterline centerline = BuildRibbonCenterline(settings, path, centerSamples);
+        const RibbonAtlasLayout layout = ComputeRibbonAtlasLayout(settings, totalLength, n);
+        const int bandHalfTexels = layout.bandHalfTexels;
+
+        // P_z をアイランドバンドへベイクし、有効テクセルを記録する。
+        std::vector<uint8_t> valid(cellCount, 0);
+        float minBaseZ = std::numeric_limits<float>::max();
+        for (const RibbonIsland& island : layout.islands)
+        {
+            const int uStartTexel = static_cast<int>(std::lround(island.uStartMeters / texelMeters));
+            for (int dy = -bandHalfTexels; dy <= bandHalfTexels; ++dy)
+            {
+                const int y = island.rowCenter + dy;
+                if (y < 0 || y >= n)
+                {
+                    continue;
+                }
+                const float v = static_cast<float>(dy) * texelMeters;
+                const float zProfile = profileZ(v);
+                const size_t row = static_cast<size_t>(y) * static_cast<size_t>(n);
+                for (int x = 0; x < island.uTexels && x < n; ++x)
+                {
+                    const int sIdx = std::min(uStartTexel + x, centerSamples - 1);
+                    const size_t idx = row + static_cast<size_t>(x);
+                    grid.baseZ[idx] = centerline.elevation[static_cast<size_t>(sIdx)] + zProfile;
+                    valid[idx] = 1;
+                    minBaseZ = std::min(minBaseZ, grid.baseZ[idx]);
+                }
+            }
+        }
+
+        // アイランド外は最低標高より 1m 低い平坦領域 (シームからの流出先)。
+        const float emptyZ = minBaseZ < std::numeric_limits<float>::max() ? minBaseZ - 1.0f : 0.0f;
+        for (size_t idx = 0; idx < cellCount; ++idx)
+        {
+            if (valid[idx] == 0)
+            {
+                grid.baseZ[idx] = emptyZ;
+                grid.heights[idx] = emptyZ;
+            }
+        }
+
+        // N_z (差分はアイランド内にクランプ) と φ = P_z + h・N_z。
+        // ノイズは全長弧長 s で連続なのでアイランドをまたいでも模様が繋がる。
+        for (const RibbonIsland& island : layout.islands)
+        {
+            const int uStartTexel = static_cast<int>(std::lround(island.uStartMeters / texelMeters));
+            const int rowMin = std::max(0, island.rowCenter - bandHalfTexels);
+            const int rowMax = std::min(n - 1, island.rowCenter + bandHalfTexels);
+            const int colMax = std::min(island.uTexels, n) - 1;
+            for (int y = rowMin; y <= rowMax; ++y)
+            {
+                const float v = static_cast<float>(y - island.rowCenter) * texelMeters;
+                const float zoneWeight = noiseZoneWeight(v);
+                const size_t row = static_cast<size_t>(y) * static_cast<size_t>(n);
+                for (int x = 0; x <= colMax; ++x)
+                {
+                    const size_t idx = row + static_cast<size_t>(x);
+                    const int sIdx = std::min(uStartTexel + x, centerSamples - 1);
+                    const int xm = std::max(0, x - 1);
+                    const int xp = std::min(colMax, x + 1);
+                    const int ym = std::max(rowMin, y - 1);
+                    const int yp = std::min(rowMax, y + 1);
+                    const float su = std::max(1.0f - centerline.curvature[static_cast<size_t>(sIdx)] * v, 0.05f);
+                    const float gx = xp > xm
+                        ? (grid.baseZ[row + static_cast<size_t>(xp)] - grid.baseZ[row + static_cast<size_t>(xm)]) /
+                            (static_cast<float>(xp - xm) * texelMeters * su)
+                        : 0.0f;
+                    const float gy = yp > ym
+                        ? (grid.baseZ[static_cast<size_t>(yp) * static_cast<size_t>(n) + static_cast<size_t>(x)] -
+                           grid.baseZ[static_cast<size_t>(ym) * static_cast<size_t>(n) + static_cast<size_t>(x)]) /
+                            (static_cast<float>(yp - ym) * texelMeters)
+                        : 0.0f;
+                    grid.normalZ[idx] = 1.0f / std::sqrt(1.0f + gx * gx + gy * gy);
+
+                    float h = 0.0f;
+                    if (noiseAmplitude > 0.0f && zoneWeight > 0.0f)
+                    {
+                        const float s = static_cast<float>(sIdx) * texelMeters;
+                        const float noise = FbmNoise(s / noiseWavelength, v / noiseWavelength, noiseOctaves, noiseSeed);
+                        h = noiseAmplitude * zoneWeight * noise;
+                    }
+                    grid.heights[idx] = grid.baseZ[idx] + h * grid.normalZ[idx];
+                    grid.mask[idx] = zoneWeight;
+                }
+            }
+        }
+
+        if (message != nullptr)
+        {
+            *message = std::format(
+                "Ribbon {}x{} ({:.0f}cm/texel, {:.1f}m x {:.1f}m, path {:.1f}m, {} island{}{})",
+                n, n, texelMeters * 100.0f, grid.terrainSizeMeters, grid.terrainSizeMeters,
+                totalLength, layout.islands.size(), layout.islands.size() == 1 ? "" : "s",
+                layout.truncated ? ", truncated" : "");
+        }
+        return grid;
+    }
+
+    const RibbonCenterline centerline = BuildRibbonCenterline(settings, path, n);
 
     // P_z ベイク (φ の組み立ての前に N_z を差分で取るため 2 パス)。
     ParallelForRows(n, [&](int y) {
@@ -449,98 +613,162 @@ HeightfieldGrid BuildHeightfieldFromRibbon(const RibbonSettings& settings, const
     return grid;
 }
 
-MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const RibbonCenterline& centerline, int meshResolution, float uvGridSpacingMeters)
+MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings& settings, const PathSettings* path, int meshResolution, float uvGridSpacingMeters, bool showUvChecker)
 {
     MeshData mesh;
     const int n = grid.resolution;
-    if (n < 2 || grid.heights.size() < static_cast<size_t>(n) * static_cast<size_t>(n) ||
-        static_cast<int>(centerline.posX.size()) != n)
+    if (n < 2 || grid.heights.size() < static_cast<size_t>(n) * static_cast<size_t>(n))
     {
         return mesh;
     }
 
     const float texel = TexelMeters(settings);
-    const float atlasHalf = static_cast<float>(n) * texel * 0.5f;
-    // 道路〜法尻 + 余白のバンドだけメッシュ化する (外側の平坦域はプレビュー不要)。
-    const float bandHalf = std::min(
-        std::max(0.1f, settings.roadHalfWidthMeters) + std::max(0.0f, settings.shoulderWidthMeters) +
-            std::max(0.0f, settings.slopeWidthMeters) + 2.0f,
-        atlasHalf);
-
-    // u はセンターラインの実長まで、v はバンド幅まで。meshResolution 相当の
-    // 頂点密度になるよう u / v 共通の stride で間引く。
-    const int uCount = std::clamp(static_cast<int>(centerline.totalLengthMeters / texel) + 1, 2, n);
+    const RibbonCenterline probe = BuildRibbonCenterline(settings, path, 2);
+    const bool packed = settings.packIslands && probe.fromPath;
+    const int centerSamples = packed
+        ? std::clamp(static_cast<int>(std::ceil(probe.totalLengthMeters / texel)) + 1, 2, 8192)
+        : n;
+    const RibbonCenterline centerline = BuildRibbonCenterline(settings, path, centerSamples);
+    RibbonAtlasLayout layout = ComputeRibbonAtlasLayout(
+        settings, centerline.totalLengthMeters, n);
+    if (!packed)
+    {
+        // 非パッキング時の単一アイランドはパスの実長まで (従来挙動)。
+        layout.islands[0].uTexels = std::clamp(static_cast<int>(centerline.totalLengthMeters / texel) + 1, 2, n);
+    }
+    const int bandTexels = layout.bandHalfTexels;
+    const float bandHalf = static_cast<float>(bandTexels) * texel;
     const int stride = std::clamp(n / std::clamp(meshResolution, 16, 2048), 1, n);
-    const int bandTexels = static_cast<int>(bandHalf / texel);
+    const float spacing = std::max(uvGridSpacingMeters, texel * static_cast<float>(stride));
 
-    std::vector<int> uSamples;
-    for (int x = 0; x < uCount; x += stride)
+    for (const RibbonIsland& island : layout.islands)
     {
-        uSamples.push_back(x);
-    }
-    if (uSamples.back() != uCount - 1)
-    {
-        uSamples.push_back(uCount - 1);
-    }
-    std::vector<int> vSamples;
-    for (int offset = -bandTexels; offset <= bandTexels; offset += stride)
-    {
-        vSamples.push_back(offset);
-    }
-    if (vSamples.back() != bandTexels)
-    {
-        vSamples.push_back(bandTexels);
-    }
+        const int uStartTexel = static_cast<int>(std::lround(island.uStartMeters / texel));
+        const int uCount = std::clamp(island.uTexels, 2, n);
 
-    const int uNum = static_cast<int>(uSamples.size());
-    const int vNum = static_cast<int>(vSamples.size());
-    mesh.vertices.resize(static_cast<size_t>(uNum) * static_cast<size_t>(vNum));
-
-    for (int vi = 0; vi < vNum; ++vi)
-    {
-        const float v = static_cast<float>(vSamples[static_cast<size_t>(vi)]) * texel;
-        for (int ui = 0; ui < uNum; ++ui)
+        std::vector<int> uSamples;
+        for (int x = 0; x < uCount; x += stride)
         {
-            const int x = uSamples[static_cast<size_t>(ui)];
-            const int y = std::clamp(vSamples[static_cast<size_t>(vi)] + (n - 1) / 2, 0, n - 1);
-            const size_t gridIdx = static_cast<size_t>(y) * static_cast<size_t>(n) + static_cast<size_t>(x);
+            uSamples.push_back(x);
+        }
+        if (uSamples.back() != uCount - 1)
+        {
+            uSamples.push_back(uCount - 1);
+        }
+        std::vector<int> vSamples;
+        for (int offset = -bandTexels; offset <= bandTexels; offset += stride)
+        {
+            vSamples.push_back(offset);
+        }
+        if (vSamples.back() != bandTexels)
+        {
+            vSamples.push_back(bandTexels);
+        }
 
-            // カーブ内側のカスプ回避: オフセットを曲率半径の手前でクランプする。
-            const float kappa = centerline.curvature[static_cast<size_t>(x)];
-            float vClamped = v;
-            if (kappa > 1e-4f)
-            {
-                vClamped = std::min(v, 0.95f / kappa);
-            }
-            else if (kappa < -1e-4f)
-            {
-                vClamped = std::max(v, 0.95f / kappa);
-            }
+        const int uNum = static_cast<int>(uSamples.size());
+        const int vNum = static_cast<int>(vSamples.size());
+        const uint32_t vertexBase = static_cast<uint32_t>(mesh.vertices.size());
+        mesh.vertices.resize(mesh.vertices.size() + static_cast<size_t>(uNum) * static_cast<size_t>(vNum));
 
-            const float bx = -centerline.tanZ[static_cast<size_t>(x)];
-            const float bz = centerline.tanX[static_cast<size_t>(x)];
-            MeshVertex& vertex = mesh.vertices[static_cast<size_t>(vi) * static_cast<size_t>(uNum) + static_cast<size_t>(ui)];
-            vertex.x = centerline.posX[static_cast<size_t>(x)] + vClamped * bx;
-            vertex.z = centerline.posZ[static_cast<size_t>(x)] + vClamped * bz;
-            vertex.y = grid.heights[gridIdx]; // 標高 = φ (変位込みのワールドZ)
-            vertex.mask = grid.mask[gridIdx];
+        for (int vi = 0; vi < vNum; ++vi)
+        {
+            const float v = static_cast<float>(vSamples[static_cast<size_t>(vi)]) * texel;
+            for (int ui = 0; ui < uNum; ++ui)
+            {
+                const int x = uSamples[static_cast<size_t>(ui)];
+                const int y = std::clamp(island.rowCenter + vSamples[static_cast<size_t>(vi)], 0, n - 1);
+                const size_t gridIdx = static_cast<size_t>(y) * static_cast<size_t>(n) + static_cast<size_t>(x);
+                const int sIdx = std::min(uStartTexel + x, centerSamples - 1);
+
+                // カーブ内側のカスプ回避: オフセットを曲率半径の手前でクランプする。
+                const float kappa = centerline.curvature[static_cast<size_t>(sIdx)];
+                float vClamped = v;
+                if (kappa > 1e-4f)
+                {
+                    vClamped = std::min(v, 0.95f / kappa);
+                }
+                else if (kappa < -1e-4f)
+                {
+                    vClamped = std::max(v, 0.95f / kappa);
+                }
+
+                const float bx = -centerline.tanZ[static_cast<size_t>(sIdx)];
+                const float bz = centerline.tanX[static_cast<size_t>(sIdx)];
+                MeshVertex& vertex = mesh.vertices[vertexBase + static_cast<size_t>(vi) * static_cast<size_t>(uNum) + static_cast<size_t>(ui)];
+                vertex.x = centerline.posX[static_cast<size_t>(sIdx)] + vClamped * bx;
+                vertex.z = centerline.posZ[static_cast<size_t>(sIdx)] + vClamped * bz;
+                vertex.y = grid.heights[gridIdx]; // 標高 = φ (変位込みのワールドZ)
+                vertex.mask = grid.mask[gridIdx];
+                if (showUvChecker)
+                {
+                    // チェッカーはアトラスUV座標基準 (アイランドごとに担当領域が
+                    // 異なって見える = UVレイアウトの可視化)。
+                    UvCheckerColor(
+                        static_cast<float>(x) * texel, static_cast<float>(y) * texel,
+                        spacing, texel, vertex.r, vertex.g, vertex.b);
+                }
+            }
+        }
+
+        // 三角形 (アイランドごとに独立したパッチ)。
+        for (int vi = 0; vi + 1 < vNum; ++vi)
+        {
+            for (int ui = 0; ui + 1 < uNum; ++ui)
+            {
+                const uint32_t i00 = vertexBase + static_cast<uint32_t>(vi * uNum + ui);
+                const uint32_t i10 = i00 + 1u;
+                const uint32_t i01 = i00 + static_cast<uint32_t>(uNum);
+                const uint32_t i11 = i01 + 1u;
+                mesh.triangles.push_back({i00, i01, i10});
+                mesh.triangles.push_back({i10, i01, i11});
+            }
+        }
+
+        // ワイヤーフレーム用エッジ = UV確認の iso-u / iso-v 線。UV空間で
+        // spacing ごとに引くので、ワールドではカーブ内側で詰まって見える。
+        const auto uIndexForMeters = [&](float meters) {
+            return std::clamp(static_cast<int>(std::lround(meters / texel / static_cast<float>(stride))), 0, uNum - 1);
+        };
+        const auto vIndexForMeters = [&](float meters) {
+            return std::clamp(static_cast<int>(std::lround((meters / texel + static_cast<float>(bandTexels)) / static_cast<float>(stride))), 0, vNum - 1);
+        };
+        std::vector<int> isoVRows;
+        for (float v = 0.0f; v <= bandHalf + 0.5f * spacing; v += spacing)
+        {
+            isoVRows.push_back(vIndexForMeters(v));
+            if (v > 0.0f)
+            {
+                isoVRows.push_back(vIndexForMeters(-v));
+            }
+        }
+        std::ranges::sort(isoVRows);
+        isoVRows.erase(std::unique(isoVRows.begin(), isoVRows.end()), isoVRows.end());
+        for (const int vi : isoVRows)
+        {
+            for (int ui = 0; ui + 1 < uNum; ++ui)
+            {
+                mesh.edges.push_back({vertexBase + static_cast<uint32_t>(vi * uNum + ui), vertexBase + static_cast<uint32_t>(vi * uNum + ui + 1)});
+            }
+        }
+        // iso-u 線は全長弧長の spacing 倍数 (アイランド境界をまたいで連番が続く)。
+        std::vector<int> isoUCols;
+        const float islandEndMeters = island.uStartMeters + static_cast<float>(uCount) * texel;
+        for (float u = std::ceil(island.uStartMeters / spacing) * spacing; u <= islandEndMeters + 0.5f * spacing; u += spacing)
+        {
+            isoUCols.push_back(uIndexForMeters(u - island.uStartMeters));
+        }
+        std::ranges::sort(isoUCols);
+        isoUCols.erase(std::unique(isoUCols.begin(), isoUCols.end()), isoUCols.end());
+        for (const int ui : isoUCols)
+        {
+            for (int vi = 0; vi + 1 < vNum; ++vi)
+            {
+                mesh.edges.push_back({vertexBase + static_cast<uint32_t>(vi * uNum + ui), vertexBase + static_cast<uint32_t>((vi + 1) * uNum + ui)});
+            }
         }
     }
 
-    // 三角形と頂点法線 (面法線の加算平均)。
-    mesh.triangles.reserve(static_cast<size_t>(uNum - 1) * static_cast<size_t>(vNum - 1) * 2u);
-    for (int vi = 0; vi + 1 < vNum; ++vi)
-    {
-        for (int ui = 0; ui + 1 < uNum; ++ui)
-        {
-            const uint32_t i00 = static_cast<uint32_t>(vi * uNum + ui);
-            const uint32_t i10 = i00 + 1u;
-            const uint32_t i01 = i00 + static_cast<uint32_t>(uNum);
-            const uint32_t i11 = i01 + 1u;
-            mesh.triangles.push_back({i00, i01, i10});
-            mesh.triangles.push_back({i10, i01, i11});
-        }
-    }
+    // 頂点法線 (面法線の加算平均)。
     for (const MeshTriangle& tri : mesh.triangles)
     {
         MeshVertex& a = mesh.vertices[tri.a];
@@ -569,51 +797,6 @@ MeshData BuildRibbonWorldMesh(const HeightfieldGrid& grid, const RibbonSettings&
             vertex.nx = 0.0f;
             vertex.ny = 1.0f;
             vertex.nz = 0.0f;
-        }
-    }
-
-    // ワイヤーフレーム用エッジ = UV確認の iso-u / iso-v 線。UV空間で
-    // uvGridSpacingMeters ごとに引くので、ワールドではカーブ内側で詰まり
-    // 外側で開く (= メトリック歪みの可視化)。
-    const float spacing = std::max(uvGridSpacingMeters, texel * static_cast<float>(stride));
-    const auto uIndexForMeters = [&](float meters) {
-        return std::clamp(static_cast<int>(std::lround(meters / texel / static_cast<float>(stride))), 0, uNum - 1);
-    };
-    const auto vIndexForMeters = [&](float meters) {
-        return std::clamp(static_cast<int>(std::lround((meters / texel + static_cast<float>(bandTexels)) / static_cast<float>(stride))), 0, vNum - 1);
-    };
-    // iso-v 線 (u 方向に走る線): v = 0, ±spacing, ±2·spacing, ...
-    std::vector<int> isoVRows;
-    for (float v = 0.0f; v <= bandHalf + 0.5f * spacing; v += spacing)
-    {
-        isoVRows.push_back(vIndexForMeters(v));
-        if (v > 0.0f)
-        {
-            isoVRows.push_back(vIndexForMeters(-v));
-        }
-    }
-    std::ranges::sort(isoVRows);
-    isoVRows.erase(std::unique(isoVRows.begin(), isoVRows.end()), isoVRows.end());
-    for (const int vi : isoVRows)
-    {
-        for (int ui = 0; ui + 1 < uNum; ++ui)
-        {
-            mesh.edges.push_back({static_cast<uint32_t>(vi * uNum + ui), static_cast<uint32_t>(vi * uNum + ui + 1)});
-        }
-    }
-    // iso-u 線 (v 方向に走る線): u = 0, spacing, 2·spacing, ...
-    std::vector<int> isoUCols;
-    for (float u = 0.0f; u <= centerline.totalLengthMeters + 0.5f * spacing; u += spacing)
-    {
-        isoUCols.push_back(uIndexForMeters(u));
-    }
-    std::ranges::sort(isoUCols);
-    isoUCols.erase(std::unique(isoUCols.begin(), isoUCols.end()), isoUCols.end());
-    for (const int ui : isoUCols)
-    {
-        for (int vi = 0; vi + 1 < vNum; ++vi)
-        {
-            mesh.edges.push_back({static_cast<uint32_t>(vi * uNum + ui), static_cast<uint32_t>((vi + 1) * uNum + ui)});
         }
     }
     return mesh;

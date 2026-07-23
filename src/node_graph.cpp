@@ -232,6 +232,8 @@ uint64_t HashRibbonSettings(const RibbonSettings& settings, int resolution)
     HashCombine(hash, static_cast<uint64_t>(settings.noiseSeed));
     HashCombine(hash, static_cast<uint64_t>(settings.noiseOnRoad ? 1 : 0));
     HashCombine(hash, static_cast<uint64_t>(settings.worldPreview ? 1 : 0));
+    HashCombine(hash, static_cast<uint64_t>(settings.packIslands ? 1 : 0));
+    HashCombine(hash, HashFloat(settings.islandMarginMeters));
     HashCombine(hash, static_cast<uint64_t>(resolution));
     return hash;
 }
@@ -2575,9 +2577,8 @@ MeshData BuildMeshFromHeightPipeline(const HeightfieldPipeline& pipeline, int re
     }
     if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
     {
-        const RibbonCenterline centerline = BuildRibbonCenterline(
-            pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
-        return BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution, 1.0f);
+        return BuildRibbonWorldMesh(grid, pipeline.ribbon,
+            pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, resolution, 1.0f, false);
     }
     return BuildMeshFromHeightfield(grid, resolution);
 }
@@ -2781,11 +2782,13 @@ MeshData NodeGraph::BuildMeshFromHeightPipelineCached(const HeightfieldPipeline&
     }
 
     const float uvGridSpacing = std::clamp(settings_.preview.uvGridSpacingMeters, 0.1f, 100.0f);
+    const bool showUvChecker = settings_.preview.showUvChecker;
     uint64_t meshInputHash = heightHash;
     HashCombine(meshInputHash, static_cast<uint64_t>(previewField));
     if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
     {
         HashCombine(meshInputHash, HashFloat(uvGridSpacing));
+        HashCombine(meshInputHash, static_cast<uint64_t>(showUvChecker ? 1 : 0));
     }
     MeshNodeCache& meshCache = meshCache_[sourceNodeId];
     if (!meshCache.valid ||
@@ -2795,9 +2798,8 @@ MeshData NodeGraph::BuildMeshFromHeightPipelineCached(const HeightfieldPipeline&
     {
         if (pipeline.useRibbon && pipeline.ribbon.worldPreview)
         {
-            const RibbonCenterline centerline = BuildRibbonCenterline(
-                pipeline.ribbon, pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, grid.resolution);
-            meshCache.mesh = BuildRibbonWorldMesh(grid, pipeline.ribbon, centerline, resolution, uvGridSpacing);
+            meshCache.mesh = BuildRibbonWorldMesh(grid, pipeline.ribbon,
+                pipeline.hasRibbonPath ? &pipeline.ribbonPath : nullptr, resolution, uvGridSpacing, showUvChecker);
         }
         else
         {
@@ -3891,6 +3893,7 @@ void NodeGraph::Evaluate(int previewMeshResolution)
     // grid as a texture instead of baking it into vertex colors.
     evaluation_.previewIsColor = false;
     evaluation_.previewColorGrid = {};
+    evaluation_.previewMeshUsesVertexColor = false;
     const Node* previewNode = FindNode(evaluation_.previewNodeId);
     if (previewNode != nullptr && previewNode->kind == NodeKind::Colorize)
     {
@@ -4013,6 +4016,8 @@ void NodeGraph::Evaluate(int previewMeshResolution)
     else
     {
         evaluation_.previewMesh = BuildMeshFromHeightPipelineCached(previewPipeline, previewMeshResolution, &evaluation_.previewMessage, evaluation_.previewField, &evaluation_.previewHeightfield);
+        evaluation_.previewMeshUsesVertexColor =
+            previewPipeline.useRibbon && previewPipeline.ribbon.worldPreview && settings_.preview.showUvChecker;
     }
     ++evaluation_.version;
     evaluation_.dirty = false;

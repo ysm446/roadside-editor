@@ -5,12 +5,12 @@
   "links": [
     {
       "endPin": 4,
-      "id": 22,
+      "id": 26,
       "startPin": 2
     },
     {
       "endPin": 8,
-      "id": 23,
+      "id": 27,
       "startPin": 5
     }
   ],
@@ -220,7 +220,7 @@
             "enabled": true,
             "featherMeters": 32.0,
             "fromPoint": 13,
-            "id": 18,
+            "id": 20,
             "segmentType": 1,
             "toPoint": 14,
             "widthMeters": 64.0
@@ -229,7 +229,7 @@
             "enabled": true,
             "featherMeters": 32.0,
             "fromPoint": 14,
-            "id": 19,
+            "id": 21,
             "segmentType": 1,
             "toPoint": 15,
             "widthMeters": 64.0
@@ -238,7 +238,7 @@
             "enabled": true,
             "featherMeters": 32.0,
             "fromPoint": 15,
-            "id": 20,
+            "id": 22,
             "segmentType": 1,
             "toPoint": 16,
             "widthMeters": 64.0
@@ -247,9 +247,27 @@
             "enabled": true,
             "featherMeters": 32.0,
             "fromPoint": 16,
-            "id": 21,
+            "id": 23,
             "segmentType": 1,
             "toPoint": 17,
+            "widthMeters": 64.0
+          },
+          {
+            "enabled": true,
+            "featherMeters": 32.0,
+            "fromPoint": 17,
+            "id": 24,
+            "segmentType": 1,
+            "toPoint": 18,
+            "widthMeters": 64.0
+          },
+          {
+            "enabled": true,
+            "featherMeters": 32.0,
+            "fromPoint": 18,
+            "id": 25,
+            "segmentType": 1,
+            "toPoint": 19,
             "widthMeters": 64.0
           }
         ],
@@ -262,7 +280,7 @@
             "id": 13,
             "intensity": 1.0,
             "widthMeters": 64.0,
-            "x": -38.0,
+            "x": -90.0,
             "z": 0.0
           },
           {
@@ -273,8 +291,8 @@
             "id": 14,
             "intensity": 1.0,
             "widthMeters": 64.0,
-            "x": -19.0,
-            "z": -4.0
+            "x": -60.0,
+            "z": -12.0
           },
           {
             "featherMeters": 32.0,
@@ -284,7 +302,7 @@
             "id": 15,
             "intensity": 1.0,
             "widthMeters": 64.0,
-            "x": 0.0,
+            "x": -30.0,
             "z": 0.0
           },
           {
@@ -295,8 +313,8 @@
             "id": 16,
             "intensity": 1.0,
             "widthMeters": 64.0,
-            "x": 19.0,
-            "z": 4.0
+            "x": 0.0,
+            "z": 12.0
           },
           {
             "featherMeters": 32.0,
@@ -306,7 +324,29 @@
             "id": 17,
             "intensity": 1.0,
             "widthMeters": 64.0,
-            "x": 38.0,
+            "x": 30.0,
+            "z": 0.0
+          },
+          {
+            "featherMeters": 32.0,
+            "height": 0.0,
+            "heightMode": 0,
+            "heightOffset": 0.0,
+            "id": 18,
+            "intensity": 1.0,
+            "widthMeters": 64.0,
+            "x": 60.0,
+            "z": -12.0
+          },
+          {
+            "featherMeters": 32.0,
+            "height": 0.0,
+            "heightMode": 0,
+            "heightOffset": 0.0,
+            "id": 19,
+            "intensity": 1.0,
+            "widthMeters": 64.0,
+            "x": 90.0,
             "z": 0.0
           }
         ]
@@ -314,12 +354,14 @@
       "ribbon": {
         "baseElevationMeters": 15.0,
         "crossfallPercent": 4.0,
+        "islandMarginMeters": 2.0,
         "longitudinalGradePercent": 3.0,
         "noiseAmplitudeMeters": 0.5,
         "noiseOctaves": 4,
         "noiseOnRoad": false,
         "noiseSeed": 0,
         "noiseWavelengthMeters": 6.0,
+        "packIslands": false,
         "roadHalfWidthMeters": 3.5,
         "shoulderCrossfallPercent": 8.0,
         "shoulderWidthMeters": 2.0,
@@ -616,17 +658,19 @@
       "ribbon": {
         "baseElevationMeters": 15.0,
         "crossfallPercent": 4.0,
+        "islandMarginMeters": 2.0,
         "longitudinalGradePercent": 3.0,
         "noiseAmplitudeMeters": 0.5,
         "noiseOctaves": 4,
         "noiseOnRoad": false,
         "noiseSeed": 0,
         "noiseWavelengthMeters": 6.0,
+        "packIslands": true,
         "roadHalfWidthMeters": 3.5,
         "shoulderCrossfallPercent": 8.0,
         "shoulderWidthMeters": 2.0,
         "slopeGradePercent": 60.0,
-        "slopeWidthMeters": 8.0,
+        "slopeWidthMeters": 5.0,
         "texelSizeCentimeters": 16.0,
         "worldPreview": true
       },
@@ -928,12 +972,14 @@
       "ribbon": {
         "baseElevationMeters": 15.0,
         "crossfallPercent": 4.0,
+        "islandMarginMeters": 2.0,
         "longitudinalGradePercent": 3.0,
         "noiseAmplitudeMeters": 0.5,
         "noiseOctaves": 4,
         "noiseOnRoad": false,
         "noiseSeed": 0,
         "noiseWavelengthMeters": 6.0,
+        "packIslands": false,
         "roadHalfWidthMeters": 3.5,
         "shoulderCrossfallPercent": 8.0,
         "shoulderWidthMeters": 2.0,
@@ -1101,6 +1147,7 @@
       "shadowBias": 0.0035000001080334187,
       "shadowStrength": 0.36000001430511475,
       "showGrid": true,
+      "showUvChecker": true,
       "showUvGrid": true,
       "simulationResolution": 512,
       "sunAzimuthDegrees": 315.0,

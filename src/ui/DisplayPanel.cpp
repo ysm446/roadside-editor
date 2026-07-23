@@ -238,6 +238,11 @@ void DrawDisplaySettingsPanel(DisplayPanelState state)
                 EvaluateGraph(state);
             }
         }
+        if (DrawPropertyBoolRow(Tr("UV Checker", "UV確認 (チェッカー)"), "DisplayUvChecker", &settings.preview.showUvChecker, "UV checker visibility changed", Tr("Show a UV test checker texture (colored cells with labels) on the ribbon world mesh in the 3D view, and overlay the same checker on the 2D view. Cell size follows UV Grid Spacing. Off restores normal shading.", "3D ビューのリボンワールドメッシュにUV確認用チェッカーテクスチャ (色分けセル + ラベル) を貼り、2D ビューにも同じチェッカーを重ねます。セルの一辺は UVグリッド間隔に従います。オフで通常のシェーディングに戻ります。"), rock::PreviewSettings{}.showUvChecker, true))
+        {
+            SaveAppSettings(state);
+            EvaluateGraph(state);
+        }
         int displayModeInt = ToDisplayModeIndex(CurrentViewportDisplayMode(settings));
         if (DrawPropertyComboRow(Tr("Display Mode", "表示モード"), "ViewportDisplayMode", &displayModeInt, Tr("Simple\0PBR\0Sky\0\0", "シンプル\0PBR\0天球\0\0"), Tr("Simple: flat and lightweight. PBR: realistic lighting with a solid background. Sky: sky background with realistic lighting.", "シンプル: フラットで軽い表示。PBR: 単色背景でリアル寄りのライティング。天球: 天球背景とリアル寄りのライティングです。"), ToDisplayModeIndex(ViewportDisplayMode::Simple)))
         {

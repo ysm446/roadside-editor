@@ -470,6 +470,17 @@ bool DrawRibbonProperties(rock::Node& editableNode)
     {
         EvaluateGraph();
     }
+    if (DrawPropertyBoolRow("Pack Islands", "RibbonPackIslands", &ribbon.packIslands, "Ribbon island packing changed", Tr("Fold a centerline longer than the atlas width into multiple row bands (UV islands). Texels outside the islands become a flat area below the lowest elevation, so water and sediment leaking at island seams can be observed as-is. Off truncates the path at the atlas width (single band).", "アトラス幅より長いセンターラインを複数の行バンド (UVアイランド) に折り返してパックします。アイランド外のテクセルは最低標高より低い平坦領域になり、シームでの水・土砂の流出をそのまま観察できます。オフの場合はアトラス幅でパスを切り詰めます (単一バンド)。"), rock::RibbonSettings{}.packIslands))
+    {
+        EvaluateGraph();
+    }
+    if (ribbon.packIslands)
+    {
+        if (DrawPropertyFloatRow("Island Margin (m)", "RibbonIslandMargin", &ribbon.islandMarginMeters, 0.0f, 20.0f, rock::RibbonSettings{}.islandMarginMeters, "Ribbon island margin changed", true, Tr("Vertical margin between island bands in the atlas.", "アトラス上のアイランドバンド間の余白です。")))
+        {
+            EvaluateGraph();
+        }
+    }
     ImGui::EndTable();
     return true;
 }

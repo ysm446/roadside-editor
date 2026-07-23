@@ -373,6 +373,13 @@ struct RibbonSettings
     // UVグリッドをそのままハイトフィールドとして表示する (2D ビューは常にUV空間)。
     // ワールド表示は CPU Mesh プレビューバックエンドでのみ有効。
     bool worldPreview = true;
+    // UVアイランド分割パッキング: アトラス幅を超える長さのセンターラインを
+    // 複数の行バンド (アイランド) に折り返してパックする (§6-7)。アイランド外の
+    // テクセルは最低標高より下の平坦領域になり、シーム (アイランド端) で水と
+    // 土砂が失われる挙動をそのまま観察できる。オフ時はパスをアトラス幅で
+    // 切り詰めた単一バンド + 平坦継続 (従来挙動)。
+    bool packIslands = false;
+    float islandMarginMeters = 2.0f; // アイランド間の余白
 };
 
 struct HeightmapBlurSettings
@@ -860,6 +867,10 @@ struct PreviewSettings
     // ワイヤーフレーム用エッジとして持つ (ワイヤーフレーム表示で見える)。
     bool showUvGrid = false;
     float uvGridSpacingMeters = 1.0f;
+    // UV確認: リボンのワールドメッシュにチェッカーテクスチャ (市松 + セルラベル)
+    // を頂点カラーで焼いて表示し、2D ビューにも同じチェッカーを重ねる。
+    // セル一辺は uvGridSpacingMeters。オフのときは通常シェーディング。
+    bool showUvChecker = false;
     int lightingMode = 0;
     bool hdrViewportEnabled = false;
     ExposureMode exposureMode = ExposureMode::Auto;
@@ -1138,6 +1149,8 @@ struct EvaluationSummary
     MeshData previewMesh;
     ColorGrid previewColorGrid;
     bool previewIsColor = false;
+    // previewMesh の頂点カラーをアルベドとして描画する (UV確認チェッカー)。
+    bool previewMeshUsesVertexColor = false;
 };
 
 class NodeGraph

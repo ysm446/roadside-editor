@@ -521,7 +521,14 @@ bool UseColorTexture()
 
 bool UseMaskTexture()
 {
-    return colorTextureMode > 1.5;
+    float m = floor(colorTextureMode * 0.5);
+    return (m - 2.0 * floor(m * 0.5)) > 0.5;
+}
+
+// bit 2: 頂点カラーをアルベドとして描画する (UV確認チェッカー)。
+bool UseVertexColorAlbedo()
+{
+    return colorTextureMode > 3.5;
 }
 
 float SamplePreviewMask(VSOut i)
@@ -608,9 +615,11 @@ float4 PSSurface(VSOut i) : SV_TARGET
     float3 lowland = float3(0.32, 0.38, 0.32);
     float3 highland = float3(0.54, 0.52, 0.46);
     float3 slopeTint = float3(0.43, 0.39, 0.34);
-    float3 baseColor = UseColorTexture()
-        ? colorTexture.Sample(linearSampler, TerrainTextureUv(i.worldPos)).rgb
-        : lerp(lerp(lowland, highland, height), slopeTint, slope * 0.42);
+    float3 baseColor = UseVertexColorAlbedo()
+        ? i.vertexColor
+        : (UseColorTexture()
+            ? colorTexture.Sample(linearSampler, TerrainTextureUv(i.worldPos)).rgb
+            : lerp(lerp(lowland, highland, height), slopeTint, slope * 0.42));
 
     float3 col = baseColor * light;
     if (lightingMode > 0.5 && maskPreview < 0.5)
@@ -650,9 +659,11 @@ float4 PSSurface(VSOut i) : SV_TARGET
         float3 sunTint = skySunColor.rgb * ndl * sunIntensity * directVisibility * cloudShadowFactor;
 
         float3 slopeMicroShade = lerp(float3(0.78, 0.80, 0.82), float3(1.06, 1.05, 1.02), viewFacing);
-        float3 effectiveAlbedo = UseColorTexture()
-            ? colorTexture.Sample(linearSampler, TerrainTextureUv(i.worldPos)).rgb
-            : albedoColor.rgb;
+        float3 effectiveAlbedo = UseVertexColorAlbedo()
+            ? i.vertexColor
+            : (UseColorTexture()
+                ? colorTexture.Sample(linearSampler, TerrainTextureUv(i.worldPos)).rgb
+                : albedoColor.rgb);
         col = effectiveAlbedo * (skyAmbient + sunTint) * slopeMicroShade;
         col += pow(saturate(ndl), 24.0) * sunIntensity * visibility * cloudShadowFactor * 0.045;
     }

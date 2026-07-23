@@ -38,6 +38,8 @@
 #include <nlohmann/json.hpp>
 
 #include "D3D12Utils.h"
+#include "evaluation/RibbonSource.h"
+#include "evaluation/UvChecker.h"
 #include "gpu/ColorizeCompute.h"
 #include "gpu/MaskFluvialCompute.h"
 #include "gpu/FluvialErosionCompute.h"
@@ -7911,7 +7913,8 @@ bool RenderGpuMeshPreview(const ImVec2& min, const ImVec2& max, bool showSurface
         constants.farPlane   = kViewportFarPlane;
         constants.maskPreview = g_graph.Evaluation().previewShowsMask ? 1.0f : 0.0f;
         constants.maskShadingMode = static_cast<float>(g_graph.Settings().preview.maskShading);
-        constants.colorTextureMode = (colorTextureReady ? 1.0f : 0.0f) + (previewGridTextureUploaded ? 2.0f : 0.0f);
+        constants.colorTextureMode = (colorTextureReady ? 1.0f : 0.0f) + (previewGridTextureUploaded ? 2.0f : 0.0f) +
+            (g_graph.Evaluation().previewMeshUsesVertexColor ? 4.0f : 0.0f);
         constants.lightingMode = static_cast<float>(g_graph.Settings().preview.lightingMode);
         const float azimuth = sunPosition.azimuth * kDegreesToRadians;
         const float elevation = sunPosition.elevation * kDegreesToRadians;
@@ -9877,6 +9880,29 @@ void DrawHeightfieldMapPreview(const ImVec2& min, const ImVec2& max)
     const int maxVisibleSamples = std::clamp(static_cast<int>(std::ceil(mapSize)), 2, kMaxMapPreviewSamples);
     const int samples = std::clamp(std::min(gridResolution, maxVisibleSamples), 2, gridResolution);
     const float cellSize = mapSize / static_cast<float>(samples);
+
+    // UV確認 (チェッカー): リボンのUV空間にチェッカーテクスチャを重ねる。
+    // アイランドパッキング時はアイランド内のテクセルだけに描く。
+    bool checkerActive = false;
+    rock::RibbonAtlasLayout checkerLayout;
+    float checkerTexel = 0.0f;
+    const float checkerSpacing = std::clamp(g_graph.Settings().preview.uvGridSpacingMeters, 0.1f, 100.0f);
+    if (g_graph.Settings().preview.showUvChecker && !maskPreview && grid.terrainSizeMeters > 0.0f)
+    {
+        const rock::HeightfieldPipeline uvPipeline = g_graph.PreviewPipeline();
+        if (uvPipeline.useRibbon)
+        {
+            checkerActive = true;
+            checkerTexel = grid.terrainSizeMeters / static_cast<float>(gridResolution);
+            const rock::PathSettings* uvPath = uvPipeline.hasRibbonPath ? &uvPipeline.ribbonPath : nullptr;
+            const rock::RibbonCenterline probe = rock::BuildRibbonCenterline(uvPipeline.ribbon, uvPath, 2);
+            if (uvPipeline.ribbon.packIslands && probe.fromPath)
+            {
+                checkerLayout = rock::ComputeRibbonAtlasLayout(uvPipeline.ribbon, probe.totalLengthMeters, gridResolution);
+            }
+        }
+    }
+
     for (int z = 0; z < samples; ++z)
     {
         const int sampleZ = samples > 1 ? static_cast<int>(std::lround(static_cast<float>(z) * static_cast<float>(gridResolution - 1) / static_cast<float>(samples - 1))) : 0;
@@ -9888,7 +9914,31 @@ void DrawHeightfieldMapPreview(const ImVec2& min, const ImVec2& max)
             const float value = maskPreview ? sourceValue : (sourceValue - minHeight) / heightRange;
             const ImVec2 cellMin(mapMin.x + static_cast<float>(x) * cellSize, mapMin.y + static_cast<float>(z) * cellSize);
             const ImVec2 cellMax(mapMin.x + static_cast<float>(x + 1) * cellSize + 0.5f, mapMin.y + static_cast<float>(z + 1) * cellSize + 0.5f);
-            drawList->AddRectFilled(cellMin, cellMax, MapPreviewColor(value, maskPreview, g_graph.Settings().preview.maskShading, x, z));
+            ImU32 cellColor = MapPreviewColor(value, maskPreview, g_graph.Settings().preview.maskShading, x, z);
+            if (checkerActive)
+            {
+                bool insideIsland = checkerLayout.islands.empty();
+                for (const rock::RibbonIsland& island : checkerLayout.islands)
+                {
+                    if (std::abs(srcZ - island.rowCenter) <= checkerLayout.bandHalfTexels && srcX < island.uTexels)
+                    {
+                        insideIsland = true;
+                        break;
+                    }
+                }
+                if (insideIsland)
+                {
+                    float cr = 0.0f, cg = 0.0f, cb = 0.0f;
+                    rock::UvCheckerColor(static_cast<float>(srcX) * checkerTexel, static_cast<float>(srcZ) * checkerTexel,
+                        checkerSpacing, checkerTexel, cr, cg, cb);
+                    const float shade = 0.35f + 0.65f * std::clamp(value, 0.0f, 1.0f);
+                    cellColor = IM_COL32(
+                        static_cast<int>(std::clamp(cr * shade, 0.0f, 1.0f) * 255.0f),
+                        static_cast<int>(std::clamp(cg * shade, 0.0f, 1.0f) * 255.0f),
+                        static_cast<int>(std::clamp(cb * shade, 0.0f, 1.0f) * 255.0f), 255);
+                }
+            }
+            drawList->AddRectFilled(cellMin, cellMax, cellColor);
         }
     }
     // UV確認表示: ワールド比例のUVグリッド線 + リボンのプロファイル境界線。
